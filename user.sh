@@ -19,7 +19,7 @@
 # - create cron: echo '*/2 * * * * root /var/ops/user.sh' >> /etc/crontab
 
 #As this script will be run by cron is to identify the system PATH
-PATH=$PATH:/var/ops
+#PATH=$PATH:/var/ops
 
 Log () {
 	
@@ -100,6 +100,12 @@ REGION=$(curl -s http://169.254.169.254/latest/dynamic/instance-identity/documen
 #Get the tags I have and find which group is manging me
 TAGS=$(aws ec2 describe-instances --instance-ids $EC2ID --region $REGION | jq ."Reservations"[0]."Instances"[0]."Tags")
 N_TAGS=$(echo $TAGS | jq '.[] | length' | wc -l)
+
+#Check response before doing anything
+if [[ ( -z $EC2ID ) || ( -z $REGION ) || ( -z $TAGS ) ]];
+then
+	exit 0
+fi
 
 #find whos should manage this server
 for n in $(seq 0 $N_TAGS); #find a better way to do this
