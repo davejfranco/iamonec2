@@ -19,7 +19,6 @@
 # - create cron: echo '*/2 * * * * root /var/ops/user.sh' >> /etc/crontab
 
 #As this script will be run by cron is to identify the system PATH
-#PATH=$PATH:/var/ops
 
 Log () {
 	
@@ -63,14 +62,14 @@ DelUser () {
 
 SSHKeys () {
 
-	SSHKEYIDS=$(aws iam list-ssh-public-keys --user-name $1 | jq ."SSHPublicKeys"[]."SSHPublicKeyId" -r)
+	SSHKEYIDS=$(/var/needish/ops/venv/bin/aws iam list-ssh-public-keys --user-name $1 | jq ."SSHPublicKeys"[]."SSHPublicKeyId" -r)
 	
 	if [[ ! -z $SSHKEYIDS ]];
 	then
 		touch /tmp/$1
 		for keyid in $SSHKEYIDS;
 		do
-			SSHKEY=$(aws iam get-ssh-public-key --user-name $1 --ssh-public-key-id $keyid --encoding SSH | jq ."SSHPublicKey"."SSHPublicKeyBody" -r)
+			SSHKEY=$(/var/needish/ops/venv/bin/aws iam get-ssh-public-key --user-name $1 --ssh-public-key-id $keyid --encoding SSH | jq ."SSHPublicKey"."SSHPublicKeyBody" -r)
 			#SSHKEY=$(echo $SSHKEY | awk -F "\"" '{print $2}')
 			grep -q "$SSHKEY" /tmp/$1 || echo "$SSHKEY" >> /tmp/$1
 		done
@@ -98,7 +97,7 @@ EC2ID=$(curl -s http://169.254.169.254/latest/meta-data/instance-id)
 REGION=$(curl -s http://169.254.169.254/latest/dynamic/instance-identity/document | jq .region -r)
 
 #Get the tags I have and find which group is manging me
-TAGS=$(aws ec2 describe-instances --instance-ids $EC2ID --region $REGION | jq ."Reservations"[0]."Instances"[0]."Tags")
+TAGS=$(/var/needish/ops/venv/bin/aws ec2 describe-instances --instance-ids $EC2ID --region $REGION | jq ."Reservations"[0]."Instances"[0]."Tags")
 N_TAGS=$(echo $TAGS | jq '.[] | length' | wc -l)
 
 #Check response before doing anything
@@ -121,7 +120,7 @@ do
 done
 
 #Get user
-USERS=$(aws iam get-group --group-name $MANAGEDBY | jq ."Users"[]."UserName" -r)
+USERS=$(/var/needish/ops/venv/bin/aws iam get-group --group-name $MANAGEDBY | jq ."Users"[]."UserName" -r)
 
 #Check if users exists in the server and update ssh key if necessary
 for user in $USERS;
